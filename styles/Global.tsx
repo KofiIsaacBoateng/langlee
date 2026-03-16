@@ -6,6 +6,5 @@ export default StyleSheet.create({
   container: {
     flex: 1,
     width,
-    backgroundColor: "purple",
   },
 });

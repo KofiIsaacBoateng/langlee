@@ -1,12 +1,14 @@
 import { AuthContext } from "@/context/AuthContext";
 import { supabase } from "@/utils/supabase";
 import { Session } from "@supabase/supabase-js";
+import * as SplashScreen from "expo-splash-screen";
 import { PropsWithChildren, useEffect, useState } from "react";
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isAppReady, setIsAppReady] = useState<boolean>(false);
 
   const premiumExpiresAt: string | null =
     profile?.is_premium?.expiresAt ?? null;
@@ -41,7 +43,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       setLoading(false);
     };
 
-    init(null);
+    init(null).finally(() => setIsAppReady(true));
 
     const {
       data: { subscription },
@@ -49,6 +51,13 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // hide splash screen after first init()
+  useEffect(() => {
+    if (isAppReady && !loading) {
+      SplashScreen.hideAsync();
+    }
+  }, [isAppReady, loading]);
 
   return (
     <AuthContext.Provider
