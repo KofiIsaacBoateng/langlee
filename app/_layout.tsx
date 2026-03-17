@@ -1,18 +1,13 @@
-import Intro from "@/components/auth/Intro";
 import { useAuthContext } from "@/context/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider } from "@/provider/AuthProvider";
-import globalStyles from "@/styles/Global";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
+// import * as NavigationBar from "expo-navigation-bar";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, View } from "react-native";
+import { useEffect } from "react";
 import "react-native-reanimated";
 
 export const unstable_settings = {
@@ -23,44 +18,41 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { loading, session } = useAuthContext();
+  const { session, isAppReady } = useAuthContext();
   const [fontsLoaded] = useFonts({
-    Inter: require("../assets/fonts/Inter-Regular.ttf"),
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    Inter: require("@/assets/fonts/Inter-Regular.ttf"),
+    SpaceMono: require("@/assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  if (loading || !fontsLoaded) {
-    return (
-      <View
-        style={[
-          globalStyles.container,
-          { alignItems: "center", justifyContent: "center" },
-        ]}
-      >
-        <ActivityIndicator size={50} color="white" />
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (fontsLoaded && isAppReady) {
+      console.log("App is ready!");
+      SplashScreen.hideAsync();
+    }
+  }, [isAppReady, fontsLoaded]);
+
+  // useEffect(() => {
+  //   (async () => {
+  //     await NavigationBar.setBackgroundColorAsync("transparent");
+  //   })();
+  // }, []);
 
   // take user to intro screen to start auth
-  if (!session) {
-    return (
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Intro />
-      </ThemeProvider>
-    );
-  }
+  // if (!session) {
+  //   return (
+  //     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+  //       <Intro />
+  //     </ThemeProvider>
+  //   );
+  // }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
+    <ThemeProvider value={DefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="auto" backgroundColor="transparent" />
     </ThemeProvider>
   );
 }

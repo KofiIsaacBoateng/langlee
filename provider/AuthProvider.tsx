@@ -1,7 +1,6 @@
 import { AuthContext } from "@/context/AuthContext";
 import { supabase } from "@/utils/supabase";
 import { Session } from "@supabase/supabase-js";
-import * as SplashScreen from "expo-splash-screen";
 import { PropsWithChildren, useEffect, useState } from "react";
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
@@ -52,13 +51,6 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // hide splash screen after first init()
-  useEffect(() => {
-    if (isAppReady && !loading) {
-      SplashScreen.hideAsync();
-    }
-  }, [isAppReady, loading]);
-
   return (
     <AuthContext.Provider
       value={{
@@ -69,6 +61,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         premiumExpiresAt,
         isPremium,
         isAdmin: false,
+        isAppReady,
         refreshProfile,
       }}
     >
