@@ -1,9 +1,10 @@
 import { Question, Word } from "@/constants/CourseData";
 import { router } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import FlashCard from "./FlashCard";
 import ProgressBarHeader from "./ProgressBarHeader";
 
 interface StudyCard {
@@ -117,7 +118,7 @@ const VocabularyPractice = ({
   ]);
 
   const progressPercent =
-    state.total === 0 ? 0 : (state.completed / state.total) * 100;
+    state.total === 0 ? 0 : ((state.completed + 1) / state.total) * 80 + 20;
   const currentKey = state.queue[0];
   const currentCard = currentKey ? state.cards[currentKey] : undefined;
   const currentCount = currentCard
@@ -128,8 +129,50 @@ const VocabularyPractice = ({
     setShowExitModal(value);
   };
 
+  const handleCTX = useCallback(() => {
+    setState((prev) => {
+      if (!prev.queue.length) {
+        return prev;
+      }
+
+      const [activeKey, ...restQueue] = prev.queue;
+      const entry = prev.cards[activeKey];
+      if (!entry) {
+        return { ...prev, queue: restQueue };
+      }
+
+      let queue = [...restQueue];
+      let completed = prev.completed + 1;
+      let phase = prev.phase;
+      let recallKeys = prev.recallKeys;
+
+      if (
+        queue.length === 0 &&
+        phase === "recognition" &&
+        recallKeys.length > 0
+      ) {
+        queue = [...recallKeys];
+        phase = "recall";
+        recallKeys = [];
+      }
+
+      return {
+        ...prev,
+        queue,
+        recallKeys,
+        phase,
+        completed,
+      };
+    });
+  }, []);
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom + 10 },
+      ]}
+    >
       <ConfirmDialog
         visible={showExitModal}
         title="Are you sure about that?"
@@ -143,11 +186,43 @@ const VocabularyPractice = ({
         }}
       />
       <ProgressBarHeader
-        progress={50}
+        progress={progressPercent}
         currentCount={currentCount}
         totalCount={state.total}
         onClose={() => onClose(true)}
       />
+
+      {/*** lessons */}
+      {/**** intro */}
+      <View style={styles.intro}>
+        <Text style={styles.title}>Lesson Vocabulary</Text>
+        <Text style={styles.subtitle}>
+          Tap to flip card if you recall or recognise word
+        </Text>
+      </View>
+      {/*** card */}
+      {currentCard && (
+        <View style={styles.flashCardContainer}>
+          <FlashCard
+            word={currentCard.word}
+            key={currentKey}
+            direction={currentCard.direction}
+          />
+        </View>
+      )}
+
+      {/**** ctx */}
+      <View style={styles.ctx}>
+        <Pressable onPress={handleCTX} style={styles.cancel}>
+          <View style={styles.cancelShadow} />
+          <Text style={styles.cancelLabel}>
+            {currentCount === state.total ? "Start Lesson" : "Got it"}
+          </Text>
+        </Pressable>
+        <Pressable onPress={onStartLesson} style={styles.confirm}>
+          <Text style={styles.confirmLabel}>Skip to Lesson</Text>
+        </Pressable>
+      </View>
     </View>
   );
 };
@@ -160,5 +235,70 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
 
-  header: {},
+  intro: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+
+  title: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#000c",
+    fontFamily: "SpaceMono",
+  },
+  subtitle: {
+    color: "#3338",
+    fontSize: 15,
+    fontFamily: "Inter",
+    fontWeight: 700,
+  },
+
+  flashCardContainer: {
+    marginVertical: 30,
+    alignItems: "center",
+  },
+  ctx: {
+    marginTop: "auto",
+    gap: 15,
+    paddingHorizontal: 25,
+  },
+
+  cancel: {
+    backgroundColor: "#1ecc1e",
+    alignItems: "center",
+    paddingVertical: 15,
+    borderRadius: 15,
+  },
+
+  cancelShadow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: -5,
+    top: 0,
+    borderRadius: 15,
+    backgroundColor: "#1ecc1ecc",
+    zIndex: -1,
+  },
+
+  cancelLabel: {
+    color: "#fff",
+    fontSize: 15,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontWeight: 800,
+  },
+
+  confirm: {
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+
+  confirmLabel: {
+    color: "#3337",
+    fontSize: 13,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontWeight: 800,
+  },
 });
