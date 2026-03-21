@@ -4,11 +4,13 @@ import { Audio } from "expo-av";
 import { router } from "expo-router";
 import * as Speech from "expo-speech";
 import React, { useMemo, useRef, useState } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import AudioPrompt from "./AudioPrompt";
+import MultipleChoiceMode from "./MultipleChoiceMode";
 import ProgressBarHeader from "./ProgressBarHeader";
 
+const { width, height } = Dimensions.get("window");
 interface WrongQuestions {
   english: string;
   mandarin: {
@@ -53,7 +55,6 @@ const LessonContent = ({
   );
   const [isSpeechPlaying, setIsSpeechPlaying] = useState(false);
   const [hasStartedFirstPlay, setHasStartedFirstPlay] = useState(false);
-  const [hasListened, setHasListened] = useState(false);
 
   // lesson complete screen
   const [showCompletion, setShowCompletion] = useState(false);
@@ -66,50 +67,81 @@ const LessonContent = ({
 
   // animation
   const fadeAnim = useRef(new Animated.Value(0)).current; // Opacity pinyin/hanzi
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const optionsAnimValue = useRef(new Animated.Value(0)).current;
-  const audioSectionAnimHeight = useRef(new Animated.Value(400)).current;
-  const optionSelectionAnim = useRef(new Animated.Value(0)).current;
-  const instructionOpacity = useRef(new Animated.Value(1)).current;
-  const listeningOpacity = useRef(new Animated.Value(0)).current;
-  const listeningScale = useRef(new Animated.Value(0.95)).current;
+  const audFlexAnim = useRef(new Animated.Value(0)).current;
+  const audBorderRadiusAnim = useRef(new Animated.Value(0)).current;
+  const audPaddingAnim = useRef(new Animated.Value(0)).current;
+  const textOpacityAnim = useRef(new Animated.Value(0)).current;
+  const textTranslateXAnim = useRef(new Animated.Value(50)).current;
+  const audTranslateXAnim = useRef(new Animated.Value(0)).current;
+  const optionFadeInAnim = useRef(new Animated.Value(0)).current;
 
   const progress = ((currentQuestionIndex + 1) / questions.length) * 80 + 20;
 
   const finishListening = () => {
-    if (hasListened) return;
-
-    setHasListened(true);
-    setIsSpeechPlaying(false);
-    void recordQuestionListened();
-    Animated.parallel([
-      Animated.timing(audioSectionAnimHeight, {
-        toValue: 200,
-        duration: 800,
-        useNativeDriver: false,
-      }),
-      Animated.timing(optionSelectionAnim, {
-        toValue: 1,
-        duration: 800,
-        delay: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const playAudio = () => {
-    const textToSpeak =
-      currentQuestion.mandarin.hanzi || currentQuestion.mandarin.pinyin;
-
-    if (isSpeechPlaying) {
-      Speech.stop();
-      setIsSpeechPlaying(false);
-      return;
+    if (!hasStartedFirstPlay) {
+      setTimeout(() => {
+        setHasStartedFirstPlay(true);
+      }, 800);
+      Animated.parallel([
+        Animated.timing(audFlexAnim, {
+          toValue: 1,
+          duration: 500,
+          delay: 500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(audPaddingAnim, {
+          toValue: 1,
+          duration: 500,
+          delay: 500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(audBorderRadiusAnim, {
+          toValue: 1,
+          duration: 500,
+          delay: 500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(textOpacityAnim, {
+          toValue: 1,
+          duration: 800,
+          delay: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(textTranslateXAnim, {
+          toValue: 60,
+          duration: 800,
+          delay: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(audTranslateXAnim, {
+          toValue: -80,
+          duration: 1000,
+          delay: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(optionFadeInAnim, {
+          toValue: 1,
+          duration: 500,
+          delay: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
 
     setIsSpeechPlaying(false);
+    void recordQuestionListened();
+  };
+
+  const playAudio = async () => {
+    const textToSpeak =
+      currentQuestion.mandarin.hanzi || currentQuestion.mandarin.pinyin;
+
+    setIsSpeechPlaying(true);
     Speech.speak(textToSpeak, {
       language: "zh-CN",
+      rate: 0.7,
+      pitch: 0.5,
+      voice: Speech.VoiceQuality.Enhanced,
       onDone: () => {
         finishListening();
       },
@@ -121,6 +153,10 @@ const LessonContent = ({
         finishListening();
       },
     });
+  };
+
+  const handleOptionPressed = (optionId: number) => {
+    setSelectedOption((prev) => (prev === optionId ? null : optionId));
   };
 
   const handleRevealMandarin = () => {
@@ -165,17 +201,31 @@ const LessonContent = ({
         onClose={() => onClose(true)}
       />
 
-      {/*** main content */}
+      {/*** main content - audio */}
       <Animated.View
         style={[
           styles.audioSection,
           {
-            backgroundColor: "#f9fafb",
-            minHeight: audioSectionAnimHeight,
-            flex: hasListened ? 0 : 1,
-            justifyContent: "center",
-            alignItems: "center",
-            opacity: isLoading || showResults ? 0.6 : 1,
+            flex: audFlexAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 0.3],
+            }),
+            marginHorizontal: audPaddingAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 20],
+            }),
+            paddingHorizontal: audPaddingAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 20],
+            }),
+            marginTop: audPaddingAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 20],
+            }),
+            borderRadius: audBorderRadiusAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 20],
+            }),
           },
         ]}
         pointerEvents={isLoading || showResults ? "none" : "auto"}
@@ -183,7 +233,8 @@ const LessonContent = ({
         <AudioPrompt
           isPlaying={isSpeechPlaying}
           isRecognizing={isRecognizing}
-          hasListenedToAudio={hasListened}
+          hasBeenPlayed={hasStartedFirstPlay}
+          audTranslateXAnim={audTranslateXAnim}
           onPlay={playAudio}
           onStopRecord={() => {}}
           onStartRecord={() => {}}
@@ -191,13 +242,34 @@ const LessonContent = ({
           currentQuestion={currentQuestion}
           showMandarin={showMandarin}
           selectedOption={selectedOption}
-          scaleAnime={scaleAnim}
-          instructionOpacity={instructionOpacity}
-          listeningOpacity={listeningOpacity}
-          listeningScale={listeningScale}
-          fadeAnime={fadeAnim}
         />
+        <Animated.View
+          style={[
+            styles.text,
+            {
+              maxWidth: hasStartedFirstPlay ? width * 0.55 - 20 : 0,
+              transform: [{ translateX: textTranslateXAnim }],
+              opacity: textOpacityAnim,
+            },
+          ]}
+        >
+          <Text style={[styles.textText, { fontWeight: 900, fontSize: 22 }]}>
+            {currentQuestion.mandarin.hanzi}
+          </Text>
+          <Text style={[styles.textText, { fontWeight: 600 }]}>
+            {currentQuestion.mandarin.pinyin}
+          </Text>
+        </Animated.View>
       </Animated.View>
+
+      {/**** main content - options */}
+      <MultipleChoiceMode
+        options={currentQuestion.options}
+        selectedOption={selectedOption}
+        showResult={showResults}
+        audFlexAnim={audFlexAnim}
+        handleOptionPressed={handleOptionPressed}
+      />
     </View>
   );
 };
@@ -209,5 +281,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  audioSection: {},
+  audioSection: {
+    minHeight: 200,
+    flexDirection: "row",
+    minWidth: width * 0.9,
+    gap: 20,
+    backgroundColor: "#f9fafb",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+
+  text: {
+    gap: 5,
+    position: "absolute",
+    zIndex: -1,
+  },
+
+  textText: {
+    fontSize: 18,
+    color: "#000c",
+    fontFamily: "Inter",
+    letterSpacing: 0.5,
+  },
 });
