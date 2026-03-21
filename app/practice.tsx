@@ -1,13 +1,14 @@
+import LessonContent from "@/components/lessons/LessonContent";
 import VocabularyPractice from "@/components/lessons/VocabularyPractice";
 import { COURSE_DATA } from "@/constants/CourseData";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Practice = () => {
   const insets = useSafeAreaInsets();
-  const { lessonId } = useLocalSearchParams();
+  const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const [isStudyingVocabs, setIsStudyingVocabs] = useState<boolean>(true);
 
   const allLessons = COURSE_DATA.chapters.flatMap((c) =>
@@ -31,9 +32,8 @@ const Practice = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Text style={{ fontSize: 26, fontFamily: "Inter" }}>
-        Practice for lesson: {lessonId}
-      </Text>
+      {/**** Lesson content */}
+      <LessonContent questions={questions} lessonId={lessonId} />
     </View>
   );
 };

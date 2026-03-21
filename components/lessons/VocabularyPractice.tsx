@@ -205,7 +205,6 @@ const VocabularyPractice = ({
         <View style={styles.flashCardContainer}>
           <FlashCard
             word={currentCard.word}
-            key={currentKey}
             direction={currentCard.direction}
           />
         </View>
@@ -214,10 +213,11 @@ const VocabularyPractice = ({
       {/**** ctx */}
       <View style={styles.ctx}>
         <Pressable onPress={handleCTX} style={styles.cancel}>
-          <View style={styles.cancelShadow} />
           <Text style={styles.cancelLabel}>
             {currentCount === state.total ? "Start Lesson" : "Got it"}
           </Text>
+          <View style={[styles.cancelShadow, styles.overlay]} />
+          <View style={[styles.cancelShadow]} />
         </Pressable>
         <Pressable onPress={onStartLesson} style={styles.confirm}>
           <Text style={styles.confirmLabel}>Skip to Lesson</Text>
@@ -258,26 +258,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ctx: {
+    position: "relative",
     marginTop: "auto",
     gap: 15,
     paddingHorizontal: 25,
   },
 
   cancel: {
-    backgroundColor: "#1ecc1e",
     alignItems: "center",
     paddingVertical: 15,
     borderRadius: 15,
+    zIndex: 10,
   },
 
   cancelShadow: {
     position: "absolute",
     left: 0,
+    top: 0,
     right: 0,
     bottom: -5,
-    top: 0,
+    backgroundColor: "#138113cc",
+    zIndex: -2,
     borderRadius: 15,
-    backgroundColor: "#1ecc1ecc",
+  },
+
+  overlay: {
+    bottom: 0,
+    backgroundColor: "#1ecc1e",
     zIndex: -1,
   },
 

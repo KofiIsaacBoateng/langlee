@@ -12,11 +12,9 @@ import {
 const { width } = Dimensions.get("window");
 const FlashCard = ({
   word,
-  key,
   direction,
 }: {
   word: Word;
-  key: string;
   direction: "en-zh" | "zh-en";
 }) => {
   const [isFlipped, setIsFlipped] = useState<boolean>(false);

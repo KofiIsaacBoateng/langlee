@@ -23,9 +23,7 @@ const ProgressBarHeader = ({
         <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
 
-      <Text style={styles.count}>
-        {currentCount}/{totalCount}
-      </Text>
+      <Text style={styles.count}>{/* {currentCount}/{totalCount} */}</Text>
     </View>
   );
 };
