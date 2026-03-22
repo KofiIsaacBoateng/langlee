@@ -12,6 +12,30 @@
           "questions": [
             {
               "id": 101,
+              "type": "single_response",
+              "mandarin": { "hanzi": "早上好", "pinyin": "Zǎoshang hǎo" },
+              "options": [
+                {
+                  "id": 1,
+                  "english": "Good morning",
+                  "mandarin": {
+                    "hanzi": "早上好",
+                    "pinyin": "Zǎoshang hǎo",
+                    "words": [
+                      {
+                        "hanzi": "早上",
+                        "pinyin": "zǎoshang",
+                        "english": "morning"
+                      },
+                      { "hanzi": "好", "pinyin": "hǎo", "english": "good" }
+                    ],
+                    "breakdown": "Greeting used before noon."
+                  }
+                }
+              ]
+            },
+            {
+              "id": 102,
               "type": "listening_mc",
               "mandarin": {
                 "hanzi": "再见",
@@ -30,7 +54,7 @@
               "correctOptionId": 2
             },
             {
-              "id": 101,
+              "id": 103,
               "type": "multiple_choice",
               "mandarin": {
                 "hanzi": "你好",
@@ -85,30 +109,6 @@
                 }
               ],
               "correctOptionId": 1
-            },
-            {
-              "id": 103,
-              "type": "single_response",
-              "mandarin": { "hanzi": "早上好", "pinyin": "Zǎoshang hǎo" },
-              "options": [
-                {
-                  "id": 1,
-                  "english": "Good morning",
-                  "mandarin": {
-                    "hanzi": "早上好",
-                    "pinyin": "Zǎoshang hǎo",
-                    "words": [
-                      {
-                        "hanzi": "早上",
-                        "pinyin": "zǎoshang",
-                        "english": "morning"
-                      },
-                      { "hanzi": "好", "pinyin": "hǎo", "english": "good" }
-                    ],
-                    "breakdown": "Greeting used before noon."
-                  }
-                }
-              ]
             },
             {
               "id": 104,

@@ -1,7 +1,7 @@
 import { Question } from "@/constants/CourseData";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { Animated, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Pressable, StyleSheet } from "react-native";
 
 const AudioPrompt = ({
   isPlaying,
@@ -33,7 +33,11 @@ const AudioPrompt = ({
   return (
     <Pressable
       disabled={isPlaying}
-      onPress={onPlay}
+      onPress={
+        hasBeenPlayed && currentQuestion.type === "single_response"
+          ? () => requestAnimationFrame(onStartRecord)
+          : () => requestAnimationFrame(onPlay)
+      }
       onPressIn={() => {
         setPressedIn(true);
       }}
@@ -45,12 +49,16 @@ const AudioPrompt = ({
       <Animated.View
         style={[
           styles.playButton,
-          { transform: [{ translateX: audTranslateXAnim }] },
+          {
+            transform: [{ translateX: audTranslateXAnim }],
+          },
         ]}
       >
-        {!pressedIn && <View style={styles.shadow} />}
-        {isPlaying ? (
+        {!pressedIn && <Animated.View style={[styles.shadow]} />}
+        {isPlaying || isRecognizing ? (
           <MaterialIcons name="graphic-eq" size={36} color="#fffd" />
+        ) : hasBeenPlayed && currentQuestion.type === "single_response" ? (
+          <Ionicons name="mic" size={36} color="#fffd" />
         ) : (
           <Ionicons
             style={{ zIndex: 10 }}
@@ -72,8 +80,8 @@ const styles = StyleSheet.create({
     position: "relative",
     width: 80,
     height: 80,
-    borderRadius: 17,
     backgroundColor: "#3062ce",
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
   },

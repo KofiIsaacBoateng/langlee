@@ -1,14 +1,16 @@
 import { Question } from "@/constants/CourseData";
 import { recordQuestionListened } from "@/lib/voiceStats";
-import { Audio } from "expo-av";
+import { Audio, InterruptionModeIOS } from "expo-av";
 import { router } from "expo-router";
 import * as Speech from "expo-speech";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
+import { toast } from "sonner-native";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import AudioPrompt from "./AudioPrompt";
 import MultipleChoiceMode from "./MultipleChoiceMode";
 import ProgressBarHeader from "./ProgressBarHeader";
+import SingleChoiceMode from "./SingleChoiceMode";
 
 const { width, height } = Dimensions.get("window");
 interface WrongQuestions {
@@ -67,9 +69,7 @@ const LessonContent = ({
 
   // animation
   const fadeAnim = useRef(new Animated.Value(0)).current; // Opacity pinyin/hanzi
-  const audFlexAnim = useRef(new Animated.Value(0)).current;
-  const audBorderRadiusAnim = useRef(new Animated.Value(0)).current;
-  const audPaddingAnim = useRef(new Animated.Value(0)).current;
+  const shrinkAudSection = useRef(new Animated.Value(height * 0.8)).current;
   const textOpacityAnim = useRef(new Animated.Value(0)).current;
   const textTranslateXAnim = useRef(new Animated.Value(50)).current;
   const audTranslateXAnim = useRef(new Animated.Value(0)).current;
@@ -83,20 +83,8 @@ const LessonContent = ({
         setHasStartedFirstPlay(true);
       }, 800);
       Animated.parallel([
-        Animated.timing(audFlexAnim, {
-          toValue: 1,
-          duration: 500,
-          delay: 500,
-          useNativeDriver: false,
-        }),
-        Animated.timing(audPaddingAnim, {
-          toValue: 1,
-          duration: 500,
-          delay: 500,
-          useNativeDriver: false,
-        }),
-        Animated.timing(audBorderRadiusAnim, {
-          toValue: 1,
+        Animated.timing(shrinkAudSection, {
+          toValue: 200,
           duration: 500,
           delay: 500,
           useNativeDriver: false,
@@ -114,7 +102,7 @@ const LessonContent = ({
           useNativeDriver: true,
         }),
         Animated.timing(audTranslateXAnim, {
-          toValue: -80,
+          toValue: currentQuestion.type === "single_response" ? 0 : -80,
           duration: 1000,
           delay: 800,
           useNativeDriver: true,
@@ -155,6 +143,32 @@ const LessonContent = ({
     });
   };
 
+  const startRecording = async () => {
+    if (isSpeechPlaying) {
+      Speech.stop();
+      setIsSpeechPlaying(false);
+    }
+
+    try {
+      // ask for microphone permision
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        toast.error("Microphone Permission", {
+          description: "Microphone access is required to practice speaking!",
+        });
+        return;
+      }
+
+      // audio mode settings
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        staysActiveInBackground: true,
+      });
+    } catch (error) {}
+  };
+
   const handleOptionPressed = (optionId: number) => {
     setSelectedOption((prev) => (prev === optionId ? null : optionId));
   };
@@ -178,6 +192,16 @@ const LessonContent = ({
   const onClose = (value: boolean) => {
     setShowExitModal(value);
   };
+
+  useEffect(() => {
+    if (
+      hasStartedFirstPlay &&
+      currentQuestion.type === "single_response" &&
+      currentQuestion.options.length > 0
+    ) {
+      setSelectedOption(currentQuestion.options[0].id);
+    }
+  }, [currentQuestion, hasStartedFirstPlay]);
 
   return (
     <View style={styles.container}>
@@ -206,26 +230,7 @@ const LessonContent = ({
         style={[
           styles.audioSection,
           {
-            flex: audFlexAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 0.3],
-            }),
-            marginHorizontal: audPaddingAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 20],
-            }),
-            paddingHorizontal: audPaddingAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 20],
-            }),
-            marginTop: audPaddingAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 20],
-            }),
-            borderRadius: audBorderRadiusAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 20],
-            }),
+            height: shrinkAudSection,
           },
         ]}
         pointerEvents={isLoading || showResults ? "none" : "auto"}
@@ -236,40 +241,67 @@ const LessonContent = ({
           hasBeenPlayed={hasStartedFirstPlay}
           audTranslateXAnim={audTranslateXAnim}
           onPlay={playAudio}
+          onStartRecord={startRecording}
           onStopRecord={() => {}}
-          onStartRecord={() => {}}
           onRevealMandarin={handleRevealMandarin}
           currentQuestion={currentQuestion}
           showMandarin={showMandarin}
           selectedOption={selectedOption}
         />
-        <Animated.View
+        {currentQuestion.type === "single_response" ? null : (
+          <Animated.View
+            style={[
+              styles.text,
+              {
+                maxWidth: hasStartedFirstPlay ? width * 0.55 - 20 : 0,
+                transform: [{ translateX: textTranslateXAnim }],
+                opacity: textOpacityAnim,
+              },
+            ]}
+          >
+            <Text style={[styles.textText, { fontWeight: 900, fontSize: 22 }]}>
+              {currentQuestion.mandarin.hanzi}
+            </Text>
+            <Text style={[styles.textText, { fontWeight: 600 }]}>
+              {currentQuestion.mandarin.pinyin}
+            </Text>
+          </Animated.View>
+        )}
+        <Text
           style={[
-            styles.text,
+            styles.textText,
             {
-              maxWidth: hasStartedFirstPlay ? width * 0.55 - 20 : 0,
-              transform: [{ translateX: textTranslateXAnim }],
-              opacity: textOpacityAnim,
+              display:
+                currentQuestion.type === "single_response" ? "flex" : "none",
+              marginTop: 20,
             },
           ]}
         >
-          <Text style={[styles.textText, { fontWeight: 900, fontSize: 22 }]}>
-            {currentQuestion.mandarin.hanzi}
-          </Text>
-          <Text style={[styles.textText, { fontWeight: 600 }]}>
-            {currentQuestion.mandarin.pinyin}
-          </Text>
-        </Animated.View>
+          {hasStartedFirstPlay
+            ? currentQuestion.type === "single_response"
+              ? "Tap the microphone to record."
+              : ""
+            : "Tap to play."}
+        </Text>
       </Animated.View>
 
       {/**** main content - options */}
-      <MultipleChoiceMode
-        options={currentQuestion.options}
-        selectedOption={selectedOption}
-        showResult={showResults}
-        audFlexAnim={audFlexAnim}
-        handleOptionPressed={handleOptionPressed}
-      />
+      {currentQuestion.type !== "single_response" && (
+        <MultipleChoiceMode
+          options={currentQuestion.options}
+          selectedOption={selectedOption}
+          showResult={showResults}
+          optionFadeInAnim={optionFadeInAnim}
+          handleOptionPressed={handleOptionPressed}
+        />
+      )}
+
+      {currentQuestion.type === "single_response" && (
+        <SingleChoiceMode
+          option={currentQuestion.options[0]}
+          optionFadeInAnim={optionFadeInAnim}
+        />
+      )}
     </View>
   );
 };
@@ -283,10 +315,8 @@ const styles = StyleSheet.create({
 
   audioSection: {
     minHeight: 200,
-    flexDirection: "row",
     minWidth: width * 0.9,
     gap: 20,
-    backgroundColor: "#f9fafb",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,

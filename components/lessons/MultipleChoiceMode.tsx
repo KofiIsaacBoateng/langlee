@@ -1,7 +1,6 @@
 import { ListeningOption, SpeakingOption } from "@/constants/CourseData";
 import React from "react";
 import { Animated, Dimensions, StyleSheet, Text } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "../buttons/Button";
 const { height } = Dimensions.get("window");
 const MultipleChoiceMode = ({
@@ -9,47 +8,33 @@ const MultipleChoiceMode = ({
   selectedOption,
   showResult,
   handleOptionPressed,
-  audFlexAnim,
+  optionFadeInAnim,
 }: {
   options: ListeningOption[] | SpeakingOption[];
   selectedOption: number | null;
-  audFlexAnim: Animated.Value;
+  optionFadeInAnim: Animated.Value;
   showResult: boolean;
   handleOptionPressed: (id: number) => void;
 }) => {
-  const insets = useSafeAreaInsets();
-
   return (
     <Animated.View
       style={[
         styles.container,
         {
-          height: audFlexAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, height * 0.5],
-          }),
+          height: height * 0.5,
           transform: [
             {
-              translateY: audFlexAnim.interpolate({
+              translateY: optionFadeInAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [height, 0],
+                outputRange: [height, 40],
               }),
             },
           ],
-          opacity: audFlexAnim,
-          marginBottom: audFlexAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, insets.bottom + 30],
-          }),
-
-          marginTop: audFlexAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 20],
-          }),
+          opacity: optionFadeInAnim,
         },
       ]}
     >
-      <Text style={styles.title}>Translate the above</Text>
+      <Text style={styles.title}>What did you hear?</Text>
       {options.map((option, index) => {
         const isSelected = option.id === selectedOption;
 

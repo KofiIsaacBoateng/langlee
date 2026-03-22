@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import globalStyles from "@/styles/Global";
-import { AntDesign, Fontisto, Octicons } from "@expo/vector-icons";
+import { AntDesign, Fontisto } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import React, { useEffect, useState } from "react";
 import {
@@ -11,9 +11,9 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -26,6 +26,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { verticalScale } from "react-native-size-matters";
+import { scheduleOnRN } from "react-native-worklets";
+import EmailAuth from "./EmailAuth";
 
 const { width, height } = Dimensions.get("window");
 const SHEETS_HEIGHT = 300;
@@ -179,6 +181,18 @@ const Intro = () => {
   const dynamicSheetsHeight =
     keyboardHeight > 0 ? SHEETS_HEIGHT + keyboardHeight + 50 : SHEETS_HEIGHT;
 
+  const panGesture = Gesture.Pan().onEnd((e) => {
+    "worklet";
+    if (e.translationY > 50) {
+      menuTranslateY.value = withSpring(SHEETS_HEIGHT + 5, {
+        damping: 30,
+        stiffness: 200,
+        mass: 1,
+      });
+      scheduleOnRN(handleMenuState);
+    }
+  });
+
   return (
     <View style={[globalStyles.container]}>
       {/*** Background video */}
@@ -208,29 +222,31 @@ const Intro = () => {
       </Animated.View>
 
       {/*** BOTTOM SHEETS */}
-      <Animated.View
-        style={[
-          styles.bottomSheet,
-          menuAnimatedStyle,
-          {
-            height: dynamicSheetsHeight,
-            paddingBottom: insets.bottom + 15,
-            backgroundColor: keyboardHeight > 0 ? "#000e" : "#000c",
-          },
-        ]}
-      >
-        {/*** dragger */}
-        <Pressable onPress={handleMenuState} style={{ marginBottom: "auto" }}>
-          <View style={styles.dragger} />
-        </Pressable>
+      <GestureDetector gesture={panGesture}>
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            menuAnimatedStyle,
+            {
+              height: dynamicSheetsHeight,
+              paddingBottom: insets.bottom + 15,
+              backgroundColor: keyboardHeight > 0 ? "#000e" : "#000c",
+            },
+          ]}
+        >
+          {/*** dragger */}
+          <Pressable onPress={handleMenuState} style={{ marginBottom: "auto" }}>
+            <View style={styles.dragger} />
+          </Pressable>
 
-        {/**** CONTENT */}
-        {startSignIn ? (
-          <EmailAuth goBack={() => setStartSignIn(false)} />
-        ) : (
-          renderAuthOptions(() => setStartSignIn(true))
-        )}
-      </Animated.View>
+          {/**** CONTENT */}
+          {startSignIn ? (
+            <EmailAuth goBack={() => setStartSignIn(false)} />
+          ) : (
+            renderAuthOptions(() => setStartSignIn(true))
+          )}
+        </Animated.View>
+      </GestureDetector>
 
       {/*** get started */}
       <Animated.View
@@ -271,7 +287,7 @@ const styles = StyleSheet.create({
   heroText: {
     fontSize: verticalScale(55),
     fontWeight: "bold",
-    color: "#ffffffaa",
+    color: "#fffc",
     fontFamily: "SpaceMono",
     marginTop: -5,
   },
@@ -279,14 +295,15 @@ const styles = StyleSheet.create({
   specialText: {
     fontSize: verticalScale(55),
     letterSpacing: 2,
-    color: "#f1579cee",
+    color: "#f1579c",
     fontWeight: "bold",
     fontFamily: "Inter",
   },
 
   getStarted: {
     zIndex: 30,
-    backgroundColor: "#690030cc",
+    backgroundColor: "#690030",
+    elevation: 5,
     marginTop: "auto",
     marginHorizontal: 30,
     alignItems: "center",
@@ -297,7 +314,7 @@ const styles = StyleSheet.create({
   },
 
   getStartedText: {
-    color: "#ffffffcc",
+    color: "#fffd",
     fontSize: 18,
     fontWeight: "bold",
   },
@@ -345,13 +362,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     fontFamily: "MonoSpace",
-    color: "#f1579caa",
+    color: "#f1579ccc",
   },
   headerRight: {},
   headerText: {
     fontSize: 17,
     fontWeight: 800,
-    color: "#fffa",
+    color: "#fffc",
   },
 
   links: {
@@ -372,45 +389,9 @@ const styles = StyleSheet.create({
   },
 
   linkText: {
-    color: "#fff8",
+    color: "#fffc",
     fontSize: 18,
     fontWeight: 700,
-  },
-
-  emailAuth: {
-    flex: 1,
-    paddingTop: 15,
-  },
-
-  back: {
-    paddingVertical: 5,
-  },
-
-  heading: {
-    gap: 5,
-    marginVertical: 10,
-  },
-
-  title: {
-    fontSize: 25,
-    fontWeight: 900,
-    color: "#fffc",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#fffa",
-    fontWeight: 700,
-  },
-
-  emailInput: {
-    backgroundColor: "#555a",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#fff8",
-    paddingVertical: 13,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    fontSize: 16,
-    marginTop: 10,
   },
 });
 
@@ -432,62 +413,19 @@ const renderAuthOptions = (setSignInOption: () => void) => (
     {/**** links */}
     <View style={styles.links}>
       <Pressable onPress={() => null} style={styles.linkBtn}>
-        <AntDesign name="apple" color="#fffa" size={20} />
+        <AntDesign name="apple" color="#fffc" size={20} />
         <Text style={styles.linkText}>Continue with Apple</Text>
       </Pressable>
 
       <Pressable onPress={() => null} style={styles.linkBtn}>
-        <AntDesign name="google" color="#fffa" size={20} />
+        <AntDesign name="google" color="#fffc" size={20} />
         <Text style={styles.linkText}>Continue with Google</Text>
       </Pressable>
 
       <Pressable onPress={setSignInOption} style={styles.linkBtn}>
-        <Fontisto name="email" color="#fffa" size={20} />
+        <Fontisto name="email" color="#fffc" size={20} />
         <Text style={styles.linkText}>Continue with Email</Text>
       </Pressable>
     </View>
   </Animated.View>
 );
-
-const EmailAuth = ({ goBack }: { goBack: () => void }) => {
-  const [email, setEmail] = useState<string>("");
-
-  return (
-    <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.emailAuth}>
-      {/*** back */}
-      <Pressable style={styles.back} onPress={goBack}>
-        <Octicons name="chevron-left" size={25} color="#fffc" />
-      </Pressable>
-      {/*** Heading texts */}
-      <View style={styles.heading}>
-        <Text style={styles.title}>Enter your email address.</Text>
-        <Text style={styles.subtitle}>
-          We will send you a magic link to sign in.
-        </Text>
-      </View>
-      {/*** email input */}
-      <TextInput
-        onChangeText={setEmail}
-        placeholder="Email..."
-        placeholderTextColor="#fff5"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoComplete="email"
-        autoFocus
-        returnKeyLabel="Send"
-        returnKeyType="send"
-        style={styles.emailInput}
-      />
-      {/*** send btn */}
-      <Pressable
-        onPress={() => null}
-        style={[
-          styles.linkBtn,
-          { marginTop: 20, borderWidth: 0, backgroundColor: "#555a" },
-        ]}
-      >
-        <Text style={styles.linkText}>Send magic link</Text>
-      </Pressable>
-    </Animated.View>
-  );
-};

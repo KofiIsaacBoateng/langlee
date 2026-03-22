@@ -1,6 +1,10 @@
+import { useAuthContext } from "@/context/AuthContext";
+import { supabase } from "@/utils/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   Modal,
   Pressable,
@@ -10,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 
 const { width } = Dimensions.get("screen");
 interface Feature {
@@ -88,8 +93,10 @@ const Paywall = ({
   onClose,
 }: {
   visible: boolean;
-  onClose: (data: any) => void;
+  onClose: () => void;
 }) => {
+  const [loading, setLoading] = useState(false);
+  const { refreshProfile } = useAuthContext();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">(
     "annual",
   );
@@ -98,6 +105,26 @@ const Paywall = ({
 
   const updateBilling = () => {
     setBillingCycle((prev) => (prev === "monthly" ? "annual" : "monthly"));
+  };
+
+  const handleStartTrial = async () => {
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.functions.invoke("start-trial", {
+        body: { planId: selectedPlan.id },
+      });
+
+      if (error) throw error;
+      await refreshProfile();
+
+      onClose();
+    } catch (error) {
+      console.log("Error starting free trial: ", error);
+      toast.error("Could not start free trial. Please try again!");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -110,12 +137,12 @@ const Paywall = ({
     >
       <SafeAreaView style={styles.container} edges={["top"]}>
         {/**** linear-gradient */}
-        {/* <LinearGradient
-          colors={["green", "blue"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <LinearGradient
+          colors={["#ff0088", "#040720"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
           style={styles.gradient}
-        /> */}
+        />
 
         {/**** header */}
         <View style={styles.header}>
@@ -143,7 +170,7 @@ const Paywall = ({
             {features.map((feature) => (
               <View key={feature.title} style={styles.feature}>
                 <View style={styles.featureIcon}>
-                  <Ionicons name={feature.icon} size={26} color="#9f2b68" />
+                  <Ionicons name={feature.icon} size={26} color="#cf0a73" />
                 </View>
                 <Text style={styles.featureTitle}>{feature.title}</Text>
                 <Text style={styles.featureDescription}>
@@ -255,15 +282,25 @@ const Paywall = ({
           </View>
 
           {/**** cta button */}
-          <Pressable style={styles.callToAction} onPress={() => null}>
-            <Ionicons name="star" color="#fffc" size={18} />
-            <Text style={styles.callToActionText}>Start my free week</Text>
+          <Pressable
+            disabled={loading}
+            style={styles.callToAction}
+            onPress={handleStartTrial}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fffc" />
+            ) : (
+              <>
+                <Ionicons name="star" color="#fffc" size={18} />
+                <Text style={styles.callToActionText}>Start my free week</Text>
+              </>
+            )}
           </Pressable>
 
           {/**** footer */}
           <Text style={styles.footer}>Try 7 days free. Cancel anytime.</Text>
           <Text style={styles.footerNote}>
-            We will send you a reminder while the text{" "}
+            We will send you a reminder before your trial ends
           </Text>
 
           <View style={styles.separator} />
@@ -297,7 +334,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 15,
-    backgroundColor: "#9f2b68",
     zIndex: 50,
   },
 
@@ -367,7 +403,7 @@ const styles = StyleSheet.create({
   },
 
   featureIcon: {
-    backgroundColor: "#9f2b6844",
+    backgroundColor: "#cf0a7355",
     borderRadius: 5,
     padding: 10,
     marginBottom: 5,
@@ -430,7 +466,7 @@ const styles = StyleSheet.create({
   },
 
   billingDetailsHeader: {
-    backgroundColor: "#9f2b68",
+    backgroundColor: "#cf0a73",
     paddingVertical: 8,
     paddingHorizontal: 15,
     position: "absolute",
@@ -440,7 +476,7 @@ const styles = StyleSheet.create({
   },
 
   billingHeaderText: {
-    color: "#fff",
+    color: "#fffd",
     fontWeight: "800",
   },
 

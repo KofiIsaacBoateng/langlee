@@ -1,8 +1,12 @@
 import Paywall from "@/components/subscriptions/Paywall";
+import { useAuthContext } from "@/context/AuthContext";
+import { supabase } from "@/utils/supabase";
 import { Ionicons, Octicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -22,6 +26,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { verticalScale } from "react-native-size-matters";
+import { toast } from "sonner-native";
 
 type LevelsType = {
   id: "beginner" | "intermediate" | "advanced";
@@ -94,8 +99,11 @@ const OnboardingScreen = () => {
   >(null);
   const [interests, setInterests] = useState<string[]>([]);
   const [motivations, setMotivations] = useState<string[]>([]);
-  const [showPaywall, setShowPaywall] = useState<boolean>(true);
+  const [showPaywall, setShowPaywall] = useState<boolean>(false);
+  const [focused, setFocused] = useState<boolean>(false);
   const [step, setStep] = useState<number>(0);
+  const { refreshProfile } = useAuthContext();
+  const [loading, setLoading] = useState<boolean>(false);
   const progressBarWidth = useSharedValue(25);
   const insets = useSafeAreaInsets();
 
@@ -116,9 +124,8 @@ const OnboardingScreen = () => {
       const prevStep = step - 1;
       setStep(prevStep);
       animateProgressBar(prevStep);
-    }
-    {
-      // return router.back()
+    } else {
+      return router.back();
     }
   };
 
@@ -128,7 +135,9 @@ const OnboardingScreen = () => {
       setStep(nextStep);
       animateProgressBar(nextStep);
     } else {
-      setShowPaywall(true);
+      console.log("called save profile");
+      saveProfile();
+      console.log("Profile saved!");
     }
   };
 
@@ -137,6 +146,38 @@ const OnboardingScreen = () => {
     if (step === 1) return !!level;
     if (step === 2) return motivations.length > 0;
     if (step === 3) return interests.length > 0;
+  };
+
+  const saveProfile = async () => {
+    setLoading(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found. Please sign in first!");
+
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        full_name: name,
+        chinese_level: level,
+        motivations,
+        interests,
+        onboarding_completed: true,
+        updated_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      await refreshProfile();
+
+      toast(`You are logged in as ${name}`);
+      setShowPaywall(true);
+    } catch (error) {
+      console.log("Fiailed to save profile: ", error);
+      toast.error("Something happened. Please try again!");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateMotivations = (id: string) => {
@@ -155,7 +196,7 @@ const OnboardingScreen = () => {
     }
   };
 
-  const closePaywall = (data: any) => {
+  const closePaywall = () => {
     setShowPaywall(false);
   };
 
@@ -169,13 +210,18 @@ const OnboardingScreen = () => {
         <TextInput
           value={name}
           onChangeText={setName}
-          onSubmitEditing={() => null}
+          onSubmitEditing={handleContinue}
+          onBlur={() => setFocused(false)}
+          onFocus={() => setFocused(true)}
           placeholder="Your name"
           placeholderTextColor={"#0003"}
           returnKeyType="next"
           returnKeyLabel="Cont'"
           autoComplete="name"
-          style={styles.textInput}
+          style={[
+            styles.textInput,
+            { borderBottomColor: focused ? "#9c0147" : "#3333" },
+          ]}
         />
       </View>
     );
@@ -204,8 +250,8 @@ const OnboardingScreen = () => {
                 style={[
                   styles.selectCard,
                   {
-                    borderColor: l.id === level ? "#9c0147cc" : "#33333310",
-                    backgroundColor: l.id === level ? "almond" : "transparent",
+                    borderColor: l.id === level ? "#9c0147cc" : "#3333",
+                    backgroundColor: l.id === level ? "#fff" : "transparent",
                   },
                 ]}
               >
@@ -250,8 +296,8 @@ const OnboardingScreen = () => {
                   styles.selectCard,
                   styles.motivationSelectCard,
                   {
-                    borderColor: isSelected ? "#9c0147cc" : "#33333310",
-                    backgroundColor: isSelected ? "almond" : "transparent",
+                    borderColor: isSelected ? "#9c0147cc" : "#3333",
+                    backgroundColor: isSelected ? "#fff" : "transparent",
                   },
                 ]}
               >
@@ -306,12 +352,13 @@ const OnboardingScreen = () => {
                 style={[
                   styles.selectCard,
                   {
-                    borderColor: isSelected ? "#9c0147cc" : "#33333310",
-                    backgroundColor: isSelected ? "#9c0147cc" : "transparent",
+                    borderColor: isSelected ? "transparent" : "#3333",
+                    backgroundColor: isSelected ? "#9c0147" : "transparent",
                     borderRadius: 100,
                     paddingLeft: 15,
                     paddingRight: 25,
                     paddingVertical: 10,
+                    minWidth: 100,
                   },
                 ]}
               >
@@ -319,7 +366,7 @@ const OnboardingScreen = () => {
                   style={[
                     styles.selectTitle,
                     {
-                      color: !isSelected ? "#000c" : "#fffc",
+                      color: !isSelected ? "#000c" : "#fff",
                       fontSize: 18,
                     },
                   ]}
@@ -335,54 +382,83 @@ const OnboardingScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "android" ? "height" : "padding"}
-      style={[styles.container, { paddingTop: insets.top + 10 }]}
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top + 10,
+          paddingBottom: insets.bottom + 10,
+        },
+      ]}
     >
-      <StatusBar backgroundColor="transparent" style="dark" />
-      {/**** header */}
-      <View style={styles.header}>
-        {/**** back */}
-        <Pressable onPress={handleBack} style={styles.back}>
-          <Octicons name="chevron-left" size={25} color="#000a" />
-        </Pressable>
-        {/**** progress-bar */}
-        <View style={styles.progressBar}>
-          <Animated.View style={[styles.progress, progressAnimatedStyle]} />
-        </View>
-        {/**** content */}
-      </View>
-      <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.content}>
-        {step === 0 && renderStep0Name()}
-        {step === 1 && renderStep1Level()}
-        {step === 2 && renderStep2Motivation()}
-        {step === 3 && renderStep3Interests()}
-      </Animated.View>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={handleContinue}
-          style={[
-            styles.callToAction,
-            { backgroundColor: isNextEnabled() ? "#9c0147" : "#2222" },
-          ]}
-          disabled={!isNextEnabled()}
-        >
-          <Text
-            style={[
-              styles.callToActionText,
-              { color: isNextEnabled() ? "#fffc" : "#fffa" },
-            ]}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "android" ? "height" : "padding"}
+      >
+        <StatusBar backgroundColor="transparent" style="dark" />
+        {/**** header */}
+        <View style={styles.header}>
+          {/**** back */}
+          <Pressable
+            disabled={loading}
+            onPress={handleBack}
+            style={styles.back}
           >
-            {step === 3 ? "Get Started" : "Continue"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Octicons
+              name="chevron-left"
+              size={25}
+              color={loading ? "#0003" : "#000a"}
+            />
+          </Pressable>
+          {/**** progress-bar */}
+          <View style={styles.progressBar}>
+            <Animated.View style={[styles.progress, progressAnimatedStyle]} />
+          </View>
+          {/**** content */}
+        </View>
+        <Animated.View
+          entering={FadeIn}
+          exiting={FadeOut}
+          style={styles.content}
+        >
+          {step === 0 && renderStep0Name()}
+          {step === 1 && renderStep1Level()}
+          {step === 2 && renderStep2Motivation()}
+          {step === 3 && renderStep3Interests()}
+        </Animated.View>
 
-      {/**** paywall modal */}
-      <Paywall visible={showPaywall} onClose={closePaywall} />
-    </KeyboardAvoidingView>
+        <View style={[styles.footer]}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleContinue}
+            style={[
+              styles.callToAction,
+              {
+                backgroundColor:
+                  isNextEnabled() && !loading ? "#9c0147" : "#2222",
+              },
+            ]}
+            disabled={!isNextEnabled() || loading}
+          >
+            {!loading ? (
+              <Text
+                style={[
+                  styles.callToActionText,
+                  { color: isNextEnabled() ? "#fffd" : "#3333" },
+                ]}
+              >
+                {step === 3 ? "Get Started" : "Continue"}
+              </Text>
+            ) : (
+              <ActivityIndicator color={"#333a"} size="small" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/**** paywall modal */}
+        <Paywall visible={showPaywall} onClose={closePaywall} />
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -391,7 +467,7 @@ export default OnboardingScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "aliceblue",
+    backgroundColor: "#fff",
     paddingBottom: 0,
   },
   header: {
@@ -419,30 +495,32 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    marginTop: verticalScale(40),
-    paddingHorizontal: 15,
+    marginTop: verticalScale(30),
+    paddingHorizontal: 20,
   },
   stepContainer: {
     flex: 1,
   },
   title: {
-    fontSize: verticalScale(28),
-    fontWeight: "900",
-    marginBottom: 10,
+    fontSize: verticalScale(25),
+    fontWeight: "700",
+    fontFamily: "Inter",
+    marginBottom: 5,
     color: "#222c",
   },
 
   subtitle: {
-    fontSize: verticalScale(15),
-    fontWeight: "700",
-    color: "#2224",
+    fontSize: verticalScale(17),
+    fontFamily: "Inter",
+    color: "#222a",
     marginBottom: 10,
   },
 
   textInput: {
     fontSize: 20,
-    fontWeight: "700",
-    borderBottomWidth: 3,
+    fontWeight: "600",
+    fontFamily: "Inter",
+    borderBottomWidth: 1,
     borderBottomColor: "#0001",
     paddingVertical: 10,
     color: "#333c",
@@ -451,7 +529,7 @@ const styles = StyleSheet.create({
 
   collectible: { marginTop: 20 },
   selectCard: {
-    borderWidth: 3,
+    borderWidth: 1.5,
     borderRadius: 15,
     padding: 15,
   },
@@ -466,31 +544,33 @@ const styles = StyleSheet.create({
 
   selectTitle: {
     fontSize: 20,
-    fontWeight: 900,
+    fontWeight: 700,
     fontFamily: "Inter",
   },
   selectDescription: {
     color: "#2228",
     fontWeight: 600,
+    fontFamily: "Inter",
     marginTop: 5,
     fontSize: 16,
   },
 
   footer: {
     marginTop: "auto",
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     paddingTop: 20,
-    borderTopWidth: 3,
-    borderTopColor: "#33333310",
+    borderTopWidth: 1,
+    borderTopColor: "#3331",
   },
   callToAction: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 15,
+    paddingVertical: 12,
     borderRadius: 50,
   },
   callToActionText: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "600",
+    fontFamily: "Inter",
   },
 });
