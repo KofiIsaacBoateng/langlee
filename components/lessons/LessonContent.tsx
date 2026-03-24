@@ -1,6 +1,7 @@
 import { Question } from "@/constants/CourseData";
 import { recordQuestionListened } from "@/lib/voiceStats";
 import { Audio, InterruptionModeIOS } from "expo-av";
+import * as FileSystem from "expo-file-system";
 import { router } from "expo-router";
 import * as Speech from "expo-speech";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -166,7 +167,66 @@ const LessonContent = ({
         interruptionModeIOS: InterruptionModeIOS.DoNotMix,
         staysActiveInBackground: true,
       });
-    } catch (error) {}
+
+      // audio presets
+      const presets = Audio.RecordingOptionsPresets.HIGH_QUALITY;
+
+      const { recording } = await Audio.Recording.createAsync({
+        ...presets,
+        ios: {
+          ...presets.ios,
+          extension: ".wav",
+          audioQuality: Audio.IOSAudioQuality.MAX,
+          outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+        },
+        android: {
+          ...presets.android,
+          extension: ".wav",
+          outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+          audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+        },
+      });
+
+      recordingRef.current = recording;
+      setIsRecognizing(true);
+    } catch (error) {
+      console.error("Error while recording audio: ", error);
+      toast.error(
+        "Unable to start audio recording right now. Please try again!",
+      );
+      recordingRef.current = null;
+      setIsRecognizing(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    setIsRecognizing(false);
+    setIsLoading(true);
+
+    try {
+      const recording = recordingRef.current;
+
+      if (!recording) {
+        setIsLoading(false);
+        toast.error("Recording failed!");
+        return;
+      }
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      recordingRef.current = null;
+
+      if (!uri) {
+        setIsLoading(false);
+        toast.error("No recording found!");
+        return;
+      }
+
+      const audioFile = new FileSystem.File(uri);
+      const base64Audio = await audioFile.base64();
+    } catch (error) {
+      console.log("error stopping recording: ", error);
+    }
   };
 
   const handleOptionPressed = (optionId: number) => {
@@ -242,7 +302,7 @@ const LessonContent = ({
           audTranslateXAnim={audTranslateXAnim}
           onPlay={playAudio}
           onStartRecord={startRecording}
-          onStopRecord={() => {}}
+          onStopRecord={stopRecording}
           onRevealMandarin={handleRevealMandarin}
           currentQuestion={currentQuestion}
           showMandarin={showMandarin}
