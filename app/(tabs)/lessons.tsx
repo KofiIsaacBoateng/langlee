@@ -1,7 +1,7 @@
 import { COURSE_DATA, Lesson } from "@/constants/CourseData";
 import { useVoiceStats } from "@/hooks/useVoiceStats";
 import { lessonColors } from "@/lib/lessonColorCodes";
-import { getAllProgress } from "@/lib/progressStats";
+import { getAllProgress, getCurrentLesson } from "@/lib/progressStats";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -25,6 +25,9 @@ const Lessons = () => {
   const direction = useRef("down"); // track scroll direction
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [currentScrollChapter, setCurrentScrollChapter] = useState<number>(1);
+  const [currentLesson, setCurrentLesson] = useState<string>(
+    COURSE_DATA.chapters[0].lessons[0].id,
+  );
   const viewableChapter = COURSE_DATA.chapters[currentScrollChapter - 1];
 
   useFocusEffect(
@@ -36,6 +39,10 @@ const Lessons = () => {
   useEffect(() => {
     (async () => {
       setProgress(await getAllProgress());
+      const lesson = await getCurrentLesson();
+      if (lesson) {
+        setCurrentLesson(lesson);
+      }
     })();
   }, []);
 
@@ -102,6 +109,9 @@ const Lessons = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.8}
+        disabled={
+          progress[lesson.id] || currentLesson === lesson.id ? false : true
+        }
         onPress={() =>
           indexY === -1
             ? handleReviewLessonPressed(lesson.id)
@@ -113,9 +123,10 @@ const Lessons = () => {
           styles.lessonWrapper,
           { transform: [transformStyle] },
           {
-            backgroundColor: !progress[lesson.id]
-              ? lessonColors[indexX % lessonColors.length].main
-              : "#3331",
+            backgroundColor:
+              progress[lesson.id] || currentLesson === lesson.id
+                ? lessonColors[indexX % lessonColors.length].main
+                : "#3331",
           },
         ]}
       >
@@ -126,9 +137,10 @@ const Lessons = () => {
             styles.layer,
             styles.lessonLayer,
             {
-              backgroundColor: !progress[lesson.id]
-                ? lessonColors[indexX % lessonColors.length].shadow
-                : "#3333",
+              backgroundColor:
+                progress[lesson.id] || currentLesson === lesson.id
+                  ? lessonColors[indexX % lessonColors.length].shadow
+                  : "#3333",
             },
           ]}
         />
@@ -149,7 +161,7 @@ const Lessons = () => {
         <Pressable onPress={() => {}} style={styles.left}>
           <View style={styles.leftUp}>
             <Text style={styles.minutes}>
-              {loading ? "-" : (stats?.minutesSpoken ?? 0)}
+              {loading ? "-" : Math.ceil(stats?.minutesSpoken ?? 0)}
             </Text>
             <Ionicons name="arrow-up" color="limegreen" size={15} />
             <Text style={styles.minutesUp}>5</Text>
@@ -160,7 +172,7 @@ const Lessons = () => {
         <Pressable onPress={() => {}} style={styles.left}>
           <View style={styles.leftUp}>
             <Text style={styles.minutes}>
-              {loading ? "-" : (stats?.minutesListened ?? 0)}
+              {loading ? "-" : Math.ceil(stats?.minutesListened ?? 0)}
             </Text>
             <Ionicons name="arrow-up" color="limegreen" size={15} />
             <Text style={styles.minutesUp}>5</Text>

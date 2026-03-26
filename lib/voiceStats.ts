@@ -71,8 +71,8 @@ export const getWeeklyStats = async () => {
   const stats = await readStats();
 
   return {
-    minutesSpoken: Math.round(stats.minutesSpoken * 10) / 10,
-    minutesListened: Math.round(stats.minutesListened * 10) / 10,
+    minutesSpoken: stats.minutesSpoken,
+    minutesListened: stats.minutesListened,
     weeklyChange: {
       spoken: 0,
       listened: 0,

@@ -36,8 +36,8 @@ const Button = ({
         style={[
           styles.button,
           {
-            borderColor: isPressedIn ? "transparent" : shadowColor || "#3333",
-            borderRadius: 17,
+            borderRadius: 12,
+            backgroundColor: backgroundColor || "transparent",
           },
         ]}
       >
@@ -66,12 +66,9 @@ export default Button;
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: 20,
+    paddingVertical: 15,
     alignItems: "center",
     justifyContent: "center",
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
-    borderTopWidth: 2,
     backgroundColor: "#fff",
   },
 
@@ -81,7 +78,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: -5,
-    borderRadius: 17,
+    borderRadius: 12,
     zIndex: -1,
   },
   overlay: {
@@ -90,12 +87,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 17,
+    borderRadius: 12,
     zIndex: 1,
   },
   label: {
     fontSize: 20,
     fontFamily: "Inter",
     zIndex: 5,
+    fontWeight: "700",
   },
 });

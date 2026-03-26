@@ -6,6 +6,10 @@ export interface LessonProgress {
   [lessonId: string]: number;
 }
 
+export interface ActiveLesson {
+  [lessonId: string]: string;
+}
+
 export const readProgress = async (): Promise<LessonProgress> => {
   try {
     const rawProgress = await AsyncStorage.getItem(KEY);
@@ -33,4 +37,22 @@ export const incrementLessonCompletion = async (lessonId: string) => {
 
 export const getAllProgress = async (): Promise<LessonProgress> => {
   return await readProgress();
+};
+
+export const getCurrentLesson = async (): Promise<string> => {
+  try {
+    const lesson = await AsyncStorage.getItem("current-lesson");
+    if (!lesson) {
+      return "";
+    }
+
+    return lesson;
+  } catch (error) {
+    console.log("Error getting active lesson: ", error);
+    return "";
+  }
+};
+
+export const setCurrentLesson = async (lessonId: string): Promise<void> => {
+  await AsyncStorage.setItem("current-lesson", lessonId);
 };

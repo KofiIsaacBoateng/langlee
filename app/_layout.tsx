@@ -14,6 +14,7 @@ import { router, Stack, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { Image, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Toaster } from "sonner-native";
@@ -37,11 +38,11 @@ function RootLayoutNav() {
   useDeepLinking();
 
   useEffect(() => {
-    if (fontsLoaded && isAppReady) {
+    if (fontsLoaded && isAppReady && !loading) {
       console.log("App is ready!");
-      SplashScreen.hideAsync();
+      SplashScreen.hide();
     }
-  }, [isAppReady, fontsLoaded]);
+  }, [isAppReady, fontsLoaded, loading]);
 
   useEffect(() => {
     NavigationBar.setStyle("light");
@@ -49,7 +50,7 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (!loading && session) {
-      if (!profile || !profile.onboading_completed) {
+      if (!profile || !profile.onboarding_completed) {
         const inOnboarding = segments[0] === "onboarding";
 
         if (!inOnboarding) {
@@ -59,13 +60,26 @@ function RootLayoutNav() {
     }
   }, [session, loading, profile, segments]);
 
+  // auto splash
+  if (!fontsLoaded || !isAppReady || loading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" backgroundColor="transparent" />
+        <Image
+          source={require("@/assets/images/splash-icon.png")}
+          style={styles.image}
+        />
+      </View>
+    );
+  }
+
   // take user to intro screen to start auth
-  if (!session) {
+  if (!loading && !session) {
     return (
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <Intro />
-          <Toaster style={{ zIndex: 100 }} />
+          <Toaster />
         </GestureHandlerRootView>
       </ThemeProvider>
     );
@@ -78,7 +92,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="onboarding" />
         </Stack>
-        <Toaster style={{ zIndex: 100 }} />
+        <Toaster />
       </GestureHandlerRootView>
       <StatusBar style="auto" backgroundColor="transparent" />
     </ThemeProvider>
@@ -92,3 +106,16 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#690030",
+  },
+  image: {
+    height: 100,
+    aspectRatio: 1 / 1,
+  },
+});

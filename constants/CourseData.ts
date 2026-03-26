@@ -76,6 +76,7 @@ interface MultipleChoiceQuestion extends BaseQuestion {
   type: "multiple_choice";
   mandarin: MandarinPrompt;
   options: SpeakingOption[];
+  correctOptionId: number;
 }
 
 interface SingleResponseQuestion extends BaseQuestion {

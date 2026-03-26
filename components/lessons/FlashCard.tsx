@@ -1,5 +1,6 @@
 import { Word } from "@/constants/CourseData";
-import React, { useRef, useState } from "react";
+import * as Speech from "expo-speech";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -19,6 +20,12 @@ const FlashCard = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
   const flipAnimation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
 
   const frontInterpolate = flipAnimation.interpolate({
     inputRange: [0, 180],
@@ -48,12 +55,19 @@ const FlashCard = ({
   };
 
   const flipToBack = () => {
+    const textToSpeak = word.hanzi || word.pinyin;
     Animated.timing(flipAnimation, {
       toValue: 180,
       duration: 250,
       useNativeDriver: true,
     }).start();
     setIsFlipped(true);
+    Speech.speak(textToSpeak, {
+      language: "zh-CN",
+      rate: 0.7,
+      pitch: 1,
+      voice: Speech.VoiceQuality.Enhanced,
+    });
   };
 
   const FrontContent = () =>

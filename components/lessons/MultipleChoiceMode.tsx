@@ -9,11 +9,13 @@ const MultipleChoiceMode = ({
   showResult,
   handleOptionPressed,
   optionFadeInAnim,
+  isCorrect,
 }: {
   options: ListeningOption[] | SpeakingOption[];
   selectedOption: number | null;
   optionFadeInAnim: Animated.Value;
   showResult: boolean;
+  isCorrect: boolean;
   handleOptionPressed: (id: number) => void;
 }) => {
   return (
@@ -43,9 +45,13 @@ const MultipleChoiceMode = ({
             key={index}
             onPress={() => handleOptionPressed(option.id)}
             label={option.english}
-            backgroundColor={isSelected ? "#3062ce33" : "#fff"}
-            shadowColor={isSelected ? "#3062cecc" : "#3335"}
-            labelColor={isSelected ? "#3062cecc" : "#333d"}
+            backgroundColor={
+              isSelected ? (isCorrect ? "#50ce08" : "#ad1616cc") : "#fff"
+            }
+            shadowColor={
+              isSelected ? (isCorrect ? "#0d5e0d" : "#752222") : "#3335"
+            }
+            labelColor={isSelected ? "#fffc" : "#333d"}
           />
         );
       })}

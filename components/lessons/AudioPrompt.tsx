@@ -2,6 +2,7 @@ import { Question } from "@/constants/CourseData";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Animated, Pressable, StyleSheet } from "react-native";
+import AudioWaveForm from "./AudioWaveform";
 
 const AudioPrompt = ({
   isPlaying,
@@ -35,7 +36,9 @@ const AudioPrompt = ({
       disabled={isPlaying}
       onPress={
         hasBeenPlayed && currentQuestion.type === "single_response"
-          ? () => requestAnimationFrame(onStartRecord)
+          ? isRecognizing
+            ? onStopRecord
+            : () => requestAnimationFrame(onStartRecord)
           : () => requestAnimationFrame(onPlay)
       }
       onPressIn={() => {
@@ -55,10 +58,18 @@ const AudioPrompt = ({
         ]}
       >
         {!pressedIn && <Animated.View style={[styles.shadow]} />}
-        {isPlaying || isRecognizing ? (
-          <MaterialIcons name="graphic-eq" size={36} color="#fffd" />
+        {isPlaying ? (
+          <AudioWaveForm
+            isPlaying={isPlaying}
+            waveCount={5}
+            waveColor="#fffd"
+          />
         ) : hasBeenPlayed && currentQuestion.type === "single_response" ? (
-          <Ionicons name="mic" size={36} color="#fffd" />
+          isRecognizing ? (
+            <MaterialIcons name="stop" size={36} color="white" />
+          ) : (
+            <Ionicons name="mic" size={36} color="#fffd" />
+          )
         ) : (
           <Ionicons
             style={{ zIndex: 10 }}

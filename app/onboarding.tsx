@@ -196,10 +196,6 @@ const OnboardingScreen = () => {
     }
   };
 
-  const closePaywall = () => {
-    setShowPaywall(false);
-  };
-
   const renderStep0Name = () => {
     return (
       <View style={styles.stepContainer}>
@@ -456,7 +452,10 @@ const OnboardingScreen = () => {
         </View>
 
         {/**** paywall modal */}
-        <Paywall visible={showPaywall} onClose={closePaywall} />
+        <Paywall
+          visible={showPaywall}
+          onClose={() => router.replace("/(tabs)/lessons")}
+        />
       </KeyboardAvoidingView>
     </View>
   );
