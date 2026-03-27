@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const Lessons = () => {
   const insets = useSafeAreaInsets();
   const { loading, stats, refresh } = useVoiceStats();
@@ -28,6 +28,11 @@ const Lessons = () => {
   const [currentLesson, setCurrentLesson] = useState<string>(
     COURSE_DATA.chapters[0].lessons[0].id,
   );
+  const [currentLessonYPositon, setCurrentLessonYPosition] = useState<
+    number | undefined
+  >(undefined);
+  const flatListRef = useRef<FlatList>(null);
+
   const viewableChapter = COURSE_DATA.chapters[currentScrollChapter - 1];
 
   useFocusEffect(
@@ -41,10 +46,22 @@ const Lessons = () => {
       setProgress(await getAllProgress());
       const lesson = await getCurrentLesson();
       if (lesson) {
+        console.log("updated lesson");
         setCurrentLesson(lesson);
       }
     })();
   }, []);
+
+  useEffect(() => {
+    console.log("triggered scroll effect: ", currentLessonYPositon);
+    if (currentLessonYPositon && flatListRef.current) {
+      console.log("current lesson position is not undefined!");
+      flatListRef.current?.scrollToOffset({
+        animated: true,
+        offset: currentLessonYPositon - height * 0.3,
+      });
+    }
+  }, [flatListRef, currentLessonYPositon, currentLesson]);
 
   const onScroll = (e: any) => {
     const currentOffset = e.nativeEvent.contentOffset.y;
@@ -109,6 +126,12 @@ const Lessons = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.8}
+        key={lesson.id}
+        onLayout={(e) =>
+          currentLesson === lesson.id
+            ? setCurrentLessonYPosition(e.nativeEvent.layout.y)
+            : () => {}
+        }
         disabled={
           progress[lesson.id] || currentLesson === lesson.id ? false : true
         }
@@ -117,7 +140,6 @@ const Lessons = () => {
             ? handleReviewLessonPressed(lesson.id)
             : handleLessonPressed(lesson.id)
         }
-        key={lesson.id}
         style={[
           styles.chapterWrapper,
           styles.lessonWrapper,
@@ -214,8 +236,9 @@ const Lessons = () => {
           data={COURSE_DATA.chapters}
           keyExtractor={(item, index) => item.id.toString()}
           onScroll={onScroll}
+          ref={flatListRef}
           renderItem={({ item: chapter, index: indexX }) => (
-            <View key={chapter.id} style={styles.lessonsContainer}>
+            <View style={styles.lessonsContainer}>
               {/**** header */}
               {indexX > 0 && (
                 <View style={styles.lessonsHeader}>
@@ -228,7 +251,7 @@ const Lessons = () => {
               )}
 
               {/**** lessons */}
-              {chapter.lessons.map((lesson, indexY) =>
+              {chapter.lessons.map((lesson: Lesson, indexY: number) =>
                 renderLessonNode(lesson, indexX, indexY),
               )}
               {chapter.review && renderLessonNode(chapter.review, indexX, -1)}

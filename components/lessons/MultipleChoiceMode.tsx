@@ -46,12 +46,12 @@ const MultipleChoiceMode = ({
             onPress={() => handleOptionPressed(option.id)}
             label={option.english}
             backgroundColor={
-              isSelected ? (isCorrect ? "#50ce08" : "#ad1616cc") : "#fff"
+              isSelected ? (isCorrect ? "#16b116" : "#a10b0b") : "#fff"
             }
             shadowColor={
-              isSelected ? (isCorrect ? "#0d5e0d" : "#752222") : "#3335"
+              isSelected ? (isCorrect ? "#16b116b3" : "#a10b0ba6") : "#3335"
             }
-            labelColor={isSelected ? "#fffc" : "#333d"}
+            labelColor={isSelected ? "#fff" : "#333d"}
           />
         );
       })}

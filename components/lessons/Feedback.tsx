@@ -1,14 +1,18 @@
 import { SpeakingOption } from "@/constants/CourseData";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import { Audio, AVPlaybackSource } from "expo-av";
+import React, { useEffect } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { BounceInDown, FadeInDown } from "react-native-reanimated";
 import Button from "../buttons/Button";
 
 interface Transcription {
   expected: string;
   said: string;
 }
+
+const correctAudio = require("@/assets/audios/correct.mp3");
+const wrongAudio = require("@/assets/audios/incorrect.mp3");
 
 const { height } = Dimensions.get("window");
 const Feedback = ({
@@ -22,9 +26,24 @@ const Feedback = ({
   onContinue: () => void;
   transcript: Transcription | undefined;
 }) => {
+  let sound: Audio.Sound;
+  const playSound = async (audio: AVPlaybackSource) => {
+    sound = new Audio.Sound();
+    await sound.loadAsync(audio);
+    await sound.playAsync();
+  };
+  useEffect(() => {
+    playSound(isCorrect ? correctAudio : wrongAudio);
+
+    return () => {
+      sound.unloadAsync();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <Animated.View
-      entering={FadeInDown}
+      entering={isCorrect ? BounceInDown : FadeInDown}
       style={[
         styles.container,
         { backgroundColor: isCorrect ? "#c9faad" : "#fa9999" },
@@ -69,13 +88,18 @@ const Feedback = ({
 
       {/**** call to action */}
       <View style={styles.footer}>
-        <Button
-          label="Continue"
-          backgroundColor={isCorrect ? "#50ce08" : "#ad1616cc"}
-          shadowColor={isCorrect ? "#0d5e0d" : "#752222"}
-          onPress={onContinue}
-          labelColor="#fffc"
-        />
+        <Animated.View
+          entering={BounceInDown}
+          animatedProps={{ animationDelay: 500, style: { flex: 1 } }}
+        >
+          <Button
+            label="Continue"
+            backgroundColor={isCorrect ? "#16b116" : "#a10b0b"}
+            shadowColor={isCorrect ? "#16b116b3" : "#a10b0ba6"}
+            onPress={onContinue}
+            labelColor="#fffc"
+          />
+        </Animated.View>
       </View>
     </Animated.View>
   );
@@ -127,6 +151,7 @@ const styles = StyleSheet.create({
   },
 
   footer: {
-    marginTop: "auto",
+    flex: 1,
+    justifyContent: "flex-end",
   },
 });
